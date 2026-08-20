@@ -11,4 +11,17 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      // Forwards any /api/* request from the dev server to the Express
+      // backend, so the browser only ever talks to one origin in dev —
+      // sidesteps CORS entirely. No path rewrite: the backend's routes
+      // are already mounted under /api (see server/src/app.js), so the
+      // prefix must be preserved, not stripped.
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

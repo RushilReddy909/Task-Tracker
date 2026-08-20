@@ -1,13 +1,10 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-import api from '@/api/axiosInstance';
-import { useAuthStore } from '@/store/authStore';
 import { signupSchema } from '@/schemas/authSchemas';
+import { useSignup } from '@/hooks/useAuth';
 import AuthLayout from '@/components/layout/AuthLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel, FieldError, FieldDescription } from '@/components/ui/field';
@@ -16,29 +13,20 @@ import { Button } from '@/components/ui/button';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const signup = useSignup();
 
   const { control, handleSubmit } = useForm({
     resolver: zodResolver(signupSchema),
     defaultValues: { email: '', password: '', confirmPassword: '' },
   });
 
-  const onSubmit = async ({ email, password }) => {
-    setIsSubmitting(true);
-    try {
-      // Backend only expects { email, password } — confirmPassword is a
-      // frontend-only validation field and is intentionally not sent.
-      const res = await api.post('/auth/signup', { email, password });
-      setAuth(res.data.user, res.data.token);
-      toast.success('Account created — you\'re all set!');
-      navigate('/', { replace: true });
-    } catch (err) {
-      const message = err.response?.data?.message || 'Something went wrong. Please try again.';
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = ({ email, password }) => {
+    // Backend only expects { email, password } — confirmPassword is a
+    // frontend-only validation field and is intentionally not sent.
+    signup.mutate(
+      { email, password },
+      { onSuccess: () => navigate('/', { replace: true }) }
+    );
   };
 
   return (
@@ -119,9 +107,9 @@ export default function SignupPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
-                {isSubmitting ? 'Creating account...' : 'Create account'}
+              <Button type="submit" className="w-full" disabled={signup.isPending}>
+                {signup.isPending && <Loader2 className="animate-spin" />}
+                {signup.isPending ? 'Creating account...' : 'Create account'}
               </Button>
             </FieldGroup>
           </form>

@@ -1,8 +1,14 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
+// Relative path so requests go through Vite's dev server proxy
+// (see server.proxy in vite.config.js) instead of hitting the backend's
+// origin directly — avoids CORS in dev. VITE_API_URL can still override
+// this (e.g. pointing at a deployed backend URL in production), in which
+// case the proxy is simply bypassed since the browser talks to that
+// origin directly instead.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 // Attach the JWT to every outgoing request, read fresh from the store

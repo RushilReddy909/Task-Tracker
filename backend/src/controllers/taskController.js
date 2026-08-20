@@ -19,13 +19,44 @@ export const getTasks = async (req, res) => {
   if (priority) filter.priority = priority;
   if (search) filter.title = { $regex: search, $options: 'i' };
 
-  const sort = { [sortBy]: order === 'asc' ? 1 : -1 };
+  const sortDir = order === 'asc' ? 1 : -1;
   const skip = (page - 1) * limit;
 
-  const [tasks, total] = await Promise.all([
-    Task.find(filter).sort(sort).skip(skip).limit(Number(limit)),
-    Task.countDocuments(filter),
-  ]);
+  // priority is stored as a string enum ('low' | 'medium' | 'high'), so a
+  // plain string sort on it is alphabetical, not severity order — 'high'
+  // sorts before 'low' before 'medium', which reads as scrambled to the
+  // user. When sorting by priority, map each value to a numeric rank via
+  // aggregation first, then sort by that; every other sortBy is a real
+  // orderable field (createdAt, dueDate) so a plain find().sort() is fine.
+  const tasksQuery =
+    sortBy === 'priority'
+      ? Task.aggregate([
+          { $match: filter },
+          {
+            $addFields: {
+              priorityRank: {
+                $switch: {
+                  branches: [
+                    { case: { $eq: ['$priority', 'low'] }, then: 1 },
+                    { case: { $eq: ['$priority', 'medium'] }, then: 2 },
+                    { case: { $eq: ['$priority', 'high'] }, then: 3 },
+                  ],
+                  default: 0,
+                },
+              },
+            },
+          },
+          { $sort: { priorityRank: sortDir, createdAt: -1 } },
+          { $skip: skip },
+          { $limit: Number(limit) },
+          { $project: { priorityRank: 0 } },
+        ])
+      : Task.find(filter)
+          .sort({ [sortBy]: sortDir })
+          .skip(skip)
+          .limit(Number(limit));
+
+  const [tasks, total] = await Promise.all([tasksQuery, Task.countDocuments(filter)]);
 
   res.json({
     tasks,
