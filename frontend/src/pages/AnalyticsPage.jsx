@@ -155,13 +155,31 @@ export default function AnalyticsPage() {
                     </p>
                   </div>
                 ) : (
-                  <ChartContainer config={STATUS_CHART_CONFIG} className="mx-auto w-full max-w-md max-h-80">
+                  <ChartContainer
+                    config={STATUS_CHART_CONFIG}
+                    className="mx-auto aspect-square w-full max-w-md max-h-80"
+                  >
                     <PieChart>
                       <ChartTooltip
                         cursor={false}
                         content={<ChartTooltipContent nameKey="status" hideLabel />}
                       />
-                      <Pie data={chartData} dataKey="count" nameKey="status" innerRadius={60} strokeWidth={2}>
+                      {/* Percentage radii instead of a fixed pixel innerRadius: a
+                          fixed 60px innerRadius left almost no room for the
+                          donut's ring on small/narrow containers (e.g. a phone
+                          screen), where the computed outerRadius could shrink to
+                          within a few px of — or smaller than — that fixed
+                          value, making Recharts render zero visible slices.
+                          Percentages scale with the container instead, so the
+                          ring stays proportionally correct at every size. */}
+                      <Pie
+                        data={chartData}
+                        dataKey="count"
+                        nameKey="status"
+                        innerRadius="55%"
+                        outerRadius="80%"
+                        strokeWidth={2}
+                      >
                         {chartData.map((entry) => (
                           <Cell key={entry.status} fill={entry.fill} />
                         ))}
