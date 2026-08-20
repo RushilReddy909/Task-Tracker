@@ -1,13 +1,22 @@
-import React from 'react'
-import { Button } from './components/ui/button'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from '@/components/layout/ProtectedRoute';
+import LoginPage from '@/pages/LoginPage';
+import SignupPage from '@/pages/SignupPage';
+import DashboardPage from '@/pages/DashboardPage';
 
-const App = () => {
+export default function App() {
   return (
-    <div className='font-bold text-2xl'>
-      App
-      <Button>Click Me</Button>
-      </div>
-  )
-}
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
 
-export default App
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<DashboardPage />} />
+      </Route>
+
+      {/* Unknown paths fall back to the dashboard (which itself redirects
+          to /login if the user isn't authenticated). */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
